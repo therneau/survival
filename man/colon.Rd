@@ -1,13 +1,13 @@
 \name{colon}
 \alias{colon}
-\title{Chemotherapy for Stage B/C colon cancer}
+\title{Chemotherapy for Stage C colon cancer}
 \usage{colon
 }
 \description{These are data from one of the first successful trials of
     adjuvant chemotherapy for colon cancer. Levamisole is a low-toxicity
     compound previously used to treat worm infestations in animals; 5-FU
     is a moderately toxic (as these things go) chemotherapy agent. There
-  are two records per person, one for recurrence and one for death}
+  are two records per person, one for recurrence and one for death.}
 \format{
 \tabular{ll}{
 id:\tab id\cr
@@ -30,7 +30,7 @@ etype:\tab event type: 1=recurrence,2=death\cr
 }}
 \note{The study is originally described in Laurie (1989). 
   The main report is found in Moertel (1990).  This data set is closest
-  to that of the final report in Moertel (1991).
+  to that of the final report in Moertel (1995).
    A version of the data with less follow-up time was used in the
    paper by Lin (1994).
 
@@ -41,7 +41,7 @@ etype:\tab event type: 1=recurrence,2=death\cr
 
    The usage above assumes that the survival package is attached via
   \code{library(survival)} or via another package that depends on
-  survival, e.g., mstate.  If not, then either \code{survival::aml}
+  survival, e.g., mstate.  If not, then either \code{survival::colon}
   can be used or \code{data(cancer, package="survival")}.
    }
 \references{
@@ -59,13 +59,13 @@ DY Lin.  Cox regression analysis of multivariate failure time data:
 DG Haller, JA Laurie, PJ Goodman, JS Ungerleider, 
 WA Emerson, DC Tormey, JH Glick, MH Veeder and JA Maillard. 
 Levamisole and fluorouracil for adjuvant therapy of 
-resected colon carcinoma. New England J of Medicine, 332:352-358,
-1990.
+resected colon carcinoma. New England J of Medicine, 322:352-358,
+1990. PMID 2300087
 
  CG Moertel,  TR Fleming,  JS MacDonald, DG Haller, JA Laurie, CM Tangen,
  JS Ungerleider, WA Emerson, DC Tormey, JH Glick, MH Veeder and JA
  Maillard, Fluorouracil plus Levamisole as an effective adjuvant
- therapy after resection of stage II colon carcinoma: a final report.
- Annals of Internal Med, 122:321-326, 1991.
-  }
+ therapy after resection of stage III colon carcinoma: a final report.
+ Annals of Internal Med, 122:321-326, 1995.  PMID 7847642
+ }
 \keyword{survival}
