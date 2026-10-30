@@ -83,12 +83,19 @@ ans1 <- c(TRUE, TRUE, TRUE, TRUE, FALSE) # correct answer for all but test3
 ans2 <- rep(TRUE, 5) # correct answer for test3
 names(ans1) <- names(ans2) <- c("vname", "labels", "data", "predvars", "strata")
 
-all.equal(ccheck(test0[-u0$terms]), ans1) 
-all.equal(ccheck(test1[-u1$terms]), ans1)
-all.equal(ccheck(test2[-u2$terms]), ans1)
-all.equal(ccheck(test3[-u3$terms]), ans2)
-all.equal(ccheck(test4[-u4$terms]), ans1)
-all.equal(ccheck(test5[-u5$terms]), ans1)
+# Update: as of r-devel 2026-09-09 4 of the 6 still failed. 
+# But with r-devel of 2026-10-30 they all pass: ].terms is finally fixed.
+# We have now commented the 6 lines out so that my test is the same for all 
+#  versions of R, but retained this file as a history of why survival has its
+#  own drop.special function.
+if (FALSE) {
+ all.equal(ccheck(test0[-u0$terms]), ans1) 
+ all.equal(ccheck(test1[-u1$terms]), ans1)
+ all.equal(ccheck(test2[-u2$terms]), ans1)
+ all.equal(ccheck(test3[-u3$terms]), ans2)
+ all.equal(ccheck(test4[-u4$terms]), ans1)
+ all.equal(ccheck(test5[-u5$terms]), ans1)
+}
 
 # The dropterms function works in all 6 cases
 all.equal(ccheck(dfun(test0, attr(test0, "specials")$strata)), ans1)

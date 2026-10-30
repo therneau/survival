@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2026-09-09 r90510) -- "Unsuffered Consequences"
+R Under development (unstable) (2026-10-30 r90795) -- "Unsuffered Consequences"
 Copyright (C) 2026 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu
 
@@ -1319,9 +1319,11 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 > time2 <- with(pbcseq, ifelse(last,  futime, c(day[-1], 0)))
 > event <- with(pbcseq, ifelse(last,  status, 0))
 > 
-> fit1 <- coxph(Surv(time1, time2, event) ~ age + sex + log(bili), pbcseq)
-Warning in Surv(time1, time2, event) :
-  Invalid status value, converted to NA
+> # time to death, transplant as censored
+> fit1 <- coxph(Surv(time1, time2, event==2) ~ age + sex + log(bili), pbcseq)
+> # competing risk, transplant or death
+> fit2 <- coxph(Surv(time1, time2, factor(event)) ~ age + sex + log(bili), 
++               pbcseq, id=id)
 > 
 > 
 > 
@@ -3890,7 +3892,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  2.935 0.262 3.197 0 0 
+Time elapsed:  2.962 0.243 3.206 0 0 
 > grDevices::dev.off()
 null device 
           1 

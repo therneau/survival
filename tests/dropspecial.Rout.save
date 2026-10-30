@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2023-01-30 r83727) -- "Unsuffered Consequences"
-Copyright (C) 2023 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2026-10-30 r90795) -- "Unsuffered Consequences"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -100,18 +100,19 @@ Type 'q()' to quit R.
 > ans2 <- rep(TRUE, 5) # correct answer for test3
 > names(ans1) <- names(ans2) <- c("vname", "labels", "data", "predvars", "strata")
 > 
-> all.equal(ccheck(test0[-u0$terms]), ans1) 
-[1] TRUE
-> all.equal(ccheck(test1[-u1$terms]), ans1)
-[1] TRUE
-> all.equal(ccheck(test2[-u2$terms]), ans1)
-[1] "2 element mismatches"
-> all.equal(ccheck(test3[-u3$terms]), ans2)
-[1] "2 element mismatches"
-> all.equal(ccheck(test4[-u4$terms]), ans1)
-[1] "2 element mismatches"
-> all.equal(ccheck(test5[-u5$terms]), ans1)
-[1] "2 element mismatches"
+> # Update: as of r-devel 2026-09-09 4 of the 6 still failed. 
+> # But with r-devel of 2026-10-30 they all pass: ].terms is finally fixed.
+> # We have now commented the 6 lines out so that my test is the same for all 
+> #  versions of R, but retained this file as a history of why survival has its
+> #  own drop.special function.
+> if (FALSE) {
++  all.equal(ccheck(test0[-u0$terms]), ans1) 
++  all.equal(ccheck(test1[-u1$terms]), ans1)
++  all.equal(ccheck(test2[-u2$terms]), ans1)
++  all.equal(ccheck(test3[-u3$terms]), ans2)
++  all.equal(ccheck(test4[-u4$terms]), ans1)
++  all.equal(ccheck(test5[-u5$terms]), ans1)
++ }
 > 
 > # The dropterms function works in all 6 cases
 > all.equal(ccheck(dfun(test0, attr(test0, "specials")$strata)), ans1)
@@ -132,4 +133,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.855   0.089   0.935 
+  0.505   0.067   0.564 
