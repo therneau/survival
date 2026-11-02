@@ -149,7 +149,7 @@ survfitAJ <- function(X, Y, weights, id, cluster, robust, istate,
         #  matrix that fills memory.  Use a small C routine.
         if (has.id) {
             twoclust <- .Call(Ctwoclust, as.integer(id), as.integer(cluster), 
-                              order(id))
+                              order(id) - 1L)
             if (twoclust ==1) 
                 warning("an id value appears on more than one cluster")
         }

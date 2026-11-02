@@ -11,7 +11,9 @@
     lines.survfit the xmax value was retained, but should not have been.
     \item github issue 345, wrong variable name in pbcseq.Rd file
     \item The test/dropspecial.R file verified an error in [.terms, an
-    error that is now fixed in base R. Update the file to drop that check.
+    error that is now fixed in base R. Update the file to drop that
+    check.
+    \item Fix error in survfitAJ, github issue 348
 }}
 \section{Changes in version 3.8-12}{
   \itemize{
