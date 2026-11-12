@@ -119,7 +119,7 @@ SEXP tmerge2(SEXP id2,  SEXP time1x, SEXP nid2, SEXP ntime2) {
 	for (; k< n2 && (nid[k] == id[i]) && (ntime[k] <= time1[i]); k++) {
 	    index[i] = k+1;
 	}
-	k--;  /* the next obs might need the same k */
+	if (k > 0) k--;  /* the next obs might need the same k */
     }
 
     UNPROTECT(1);
