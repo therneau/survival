@@ -2,6 +2,8 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 3.8.13}{
   \itemize{
+    \item Make coxph.wtest rank detection independent of variable units,
+    correcting scale-dependent Cox Wald and robust score tests (github issue 353).
     \item Remove a duplicate example in the coxph.Rd file
     \item The clabel attribute of a Surv object was not always
     preserved; correct that
