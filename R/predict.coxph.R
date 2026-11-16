@@ -292,7 +292,7 @@ predict.coxph <- function(object, newdata,
 
             if (type=='risk') {
                 pred <- exp(pred)
-                if (se.fit) se <- se * sqrt(pred)  # standard Taylor series approx
+                if (se.fit) se <- se * pred  # delta method: d exp(lp)/d lp = exp(lp)
                 }
             }
         else if (type=='terms') { 

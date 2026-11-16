@@ -14,6 +14,9 @@
     error that is now fixed in base R. Update the file to drop that
     check.
     \item Fix error in survfitAJ, github issue 348
+    \item The standard error returned by predict.coxph and
+    predict.coxphms for \code{type="risk", se.fit=TRUE} was
+    sqrt(exp(lp)) * se(lp); the delta method gives exp(lp) * se(lp).
 }}
 \section{Changes in version 3.8-12}{
   \itemize{

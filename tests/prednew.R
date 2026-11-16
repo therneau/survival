@@ -71,3 +71,13 @@ p1 <- predict(myfit, type='terms', se=T)
 p2 <- predict(myfit2, type='terms', se=T)
 aeq(p1$fit, p2$fit)
 aeq(p1$se.fit, p2$se.fit)
+
+# The standard error of the risk score exp(lp) is exp(lp) * se(lp), by the
+#  delta method.  (Prior to 3.8-13 it was sqrt(exp(lp)) * se(lp).)
+p1 <- predict(myfit2, type='lp', se.fit=TRUE)
+p2 <- predict(myfit2, type='risk', se.fit=TRUE)
+aeq(p2$se.fit, p2$fit * p1$se.fit)
+xx <- scale(model.matrix(myfit2), center=myfit2$means, scale=FALSE)
+aeq(p2$se.fit, exp(xx %*% coef(myfit2)) * sqrt(rowSums((xx %*% vcov(myfit2)) * xx)))
+p3 <- predict(myfit2, type='risk', se.fit=TRUE, newdata=lung[1:5,])
+aeq(p3$se.fit, p2$se.fit[1:5])
