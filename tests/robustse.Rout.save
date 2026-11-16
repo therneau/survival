@@ -1,0 +1,66 @@
+
+R version 4.6.0 (2026-04-24) -- "Because it was There"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin23
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+> aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
+> #
+> # Single-state survfit with a robust variance.  The infinitesimal jackknife
+> #  se of S is sqrt(colSums(U^2)), U = influence.surv.  Whatever scale the
+> #  std.err component uses (the logse flag), summary.survfit reports se(S)
+> #  and the log-scale confidence limit is S exp(-z se(S)/S).
+> #
+> zz <- qnorm(.975)
+> for (stype in 1:2) {
++     for (ctype in 1:2) {
++         fit <- survfit(Surv(time, status) ~ 1, data=aml, stype=stype,
++                        ctype=ctype, id=1:nrow(aml), robust=TRUE, influence=TRUE)
++         seS <- sqrt(colSums(fit$influence.surv^2))
++         keep <- (fit$surv > 0)
++         print(c(stype=stype, ctype=ctype, logse=fit$logse))
++         print(aeq(fit$std.err[keep], 
++                   (if (stype==1) seS else seS/fit$surv)[keep]))
++         print(aeq(summary(fit)$std.err, seS[fit$n.event > 0]))
++         print(aeq(fit$lower[keep], 
++                   (fit$surv * exp(-zz * seS/fit$surv))[keep]))
++     }
++ }
+stype ctype logse 
+    1     1     0 
+[1] TRUE
+[1] TRUE
+[1] TRUE
+stype ctype logse 
+    1     2     0 
+[1] TRUE
+[1] TRUE
+[1] TRUE
+stype ctype logse 
+    2     1     1 
+[1] TRUE
+[1] TRUE
+[1] TRUE
+stype ctype logse 
+    2     2     1 
+[1] TRUE
+[1] TRUE
+[1] TRUE
+> 
+> proc.time()
+   user  system elapsed 
+  0.437   0.033   0.464 

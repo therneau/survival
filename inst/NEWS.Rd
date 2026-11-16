@@ -14,7 +14,11 @@
     error that is now fixed in base R. Update the file to drop that
     check.
     \item Fix error in survfitAJ, github issue 348
-    \item Document the \code{logse} component of a survfit object:
+    \item For single-state survfit curves with a robust variance the
+    \code{logse} flag was set by ctype when it should depend on stype.
+    For stype=1, ctype=2 and for stype=2, ctype=1 this gave wrong
+    confidence limits and a wrong std.err from summary.survfit.
+    Also document the \code{logse} component in survfit.object.Rd:
     for a Kaplan-Meier curve with a robust variance \code{std.err} is
     the standard error of S, not of -log(S).
 }}
