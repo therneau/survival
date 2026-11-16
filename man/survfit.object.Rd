@@ -61,6 +61,18 @@ The following components must be included in a legitimate
     hazard or -log(survival), for a multi-state curve it contains the
     standard error of prev.  This difference is a reflection of
     the fact that each is the natural calculation for that case.
+    One exception is a Kaplan-Meier curve (\code{stype=1}) with a robust
+    (infinitesimal jackknife) variance, e.g., when there is a
+    \code{cluster} argument or non-integer case weights; there
+    \code{std.err} contains the standard error of the survival curve itself.
+    The \code{logse} component records which scale was used.
+    The \code{summary.survfit} function always reports the standard error
+    of the survival curve.
+  }
+  \item{\code{logse}}{
+    TRUE if \code{std.err} is the standard error of the cumulative
+    hazard or -log(survival), FALSE if it is the standard error of
+    \code{surv} or \code{pstate}.
   }
   \item{\code{cumhaz}}{optional.  Contains the cumulative
     hazard for each possible transition.

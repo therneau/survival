@@ -290,7 +290,9 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
     else rval$type <- "right"
 
     if (se.fit) {
-        rval$logse = (ncluster==0 || (type==2 || type==4))  # se(log S) or se(S)
+        # The robust std.err is se(S) for the KM (type 1, 2) and
+        #  se(log S) = se(cumhaz) when S = exp(-cumhaz) (type 3, 4)
+        rval$logse = (ncluster==0 || (type==3 || type==4))
         rval$conf.int   = conf.int
         rval$conf.type= conf.type
         if (conf.lower != "usual") rval$conf.lower = conf.lower
