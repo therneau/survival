@@ -14,6 +14,9 @@
     error that is now fixed in base R. Update the file to drop that
     check.
     \item Fix error in survfitAJ, github issue 348
+    \item Document the \code{logse} component of a survfit object:
+    for a Kaplan-Meier curve with a robust variance \code{std.err} is
+    the standard error of S, not of -log(S).
 }}
 \section{Changes in version 3.8-12}{
   \itemize{
