@@ -308,7 +308,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(fit3b$std.err, fit3b$std.chaz)
 [1] TRUE
-> aeq(fit3b$logse, FALSE)
+> aeq(fit3b$logse, TRUE)   # std.err is se(cumhaz) = se(-log S)
 [1] TRUE
 > aeq(fit3b$n.risk, c(true2a$n.risk, true2b$n.risk))
 [1] TRUE

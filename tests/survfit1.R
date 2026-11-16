@@ -224,7 +224,7 @@ temp <- c("n", "time", "cumhaz", "std.chaz", "influence.chaz", "n.risk",
 aeq(unclass(fit3b)[temp], unclass(fit3)[temp])  # unclass avoids [.survfit
 aeq(fit3b$surv, exp(-c(true2a$estimate[,2], true2b$estimate[,2])))
 aeq(fit3b$std.err, fit3b$std.chaz)
-aeq(fit3b$logse, FALSE)
+aeq(fit3b$logse, TRUE)   # std.err is se(cumhaz) = se(-log S)
 aeq(fit3b$n.risk, c(true2a$n.risk, true2b$n.risk))
 aeq(fit3b$n.event, c(true2a$n.event, true2b$n.event))
 
