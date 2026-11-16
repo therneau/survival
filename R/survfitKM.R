@@ -309,7 +309,10 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
         }
         std.low <- switch(conf.lower,
                           'usual' = rval$std.err,
-                          'peto' = sqrt((1-rval$surv)/ rval$n.risk),
+                          # Peto's se is for log(S); put it on the same scale
+                          #  as std.err, which is se(S) when logse is FALSE
+                          'peto' = sqrt((1-rval$surv)/ rval$n.risk) *
+                              (if (rval$logse) 1 else rval$surv),
                           'modified' = rval$std.err * sqrt(n.lag/rval$n.risk))
             
         if (conf.type != "none") {

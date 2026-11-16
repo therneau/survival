@@ -14,6 +14,10 @@
     error that is now fixed in base R. Update the file to drop that
     check.
     \item Fix error in survfitAJ, github issue 348
+    \item survfit with \code{conf.lower="peto"} and a robust variance
+    (a cluster or id with repeated events, \code{robust=TRUE}, or
+    non-integer case weights) gave a lower confidence limit that was too
+    low: Peto's se of log(S) was paired with the se of S.
 }}
 \section{Changes in version 3.8-12}{
   \itemize{

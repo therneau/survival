@@ -1,0 +1,57 @@
+
+R version 4.6.0 (2026-04-24) -- "Because it was There"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin23
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+> aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
+> #
+> # The Peto lower limit uses var(S) = S^2 (1-S)/n.risk.  For the default log
+> #  transform the lower limit is S * exp(-z * sqrt((1-S)/n.risk)), whether or
+> #  not the std.err component is a robust (infinitesimal jackknife) one.
+> #
+> zz <- qnorm(.975)
+> fit1 <- survfit(Surv(time, status) ~ 1, data=aml, conf.lower="peto")
+> fit2 <- survfit(Surv(time, status) ~ 1, data=aml, conf.lower="peto",
++                 robust=TRUE, id=1:nrow(aml))
+> c(fit1$logse, fit2$logse)
+[1]  TRUE FALSE
+> keep <- (fit1$surv > 0 & fit1$surv < 1)
+> peto <- with(fit1, surv * exp(-zz * sqrt((1-surv)/n.risk)))
+> aeq(fit1$lower[keep], peto[keep])
+[1] TRUE
+> aeq(fit2$lower[keep], peto[keep])
+[1] TRUE
+> 
+> # The upper limit is not modified
+> aeq(fit2$upper, survfit(Surv(time, status) ~ 1, data=aml, robust=TRUE,
++                         id=1:nrow(aml))$upper)
+[1] TRUE
+> 
+> # Non-integer case weights imply a robust variance
+> wt <- rep(c(.5, 1.5), length=nrow(aml))
+> fit3 <- survfit(Surv(time, status) ~ x, data=aml, weights=wt, conf.lower="peto")
+> fit3$logse
+[1] FALSE
+> keep <- (fit3$surv > 0 & fit3$surv < 1)
+> peto <- with(fit3, surv * exp(-zz * sqrt((1-surv)/n.risk)))
+> aeq(fit3$lower[keep], peto[keep])
+[1] TRUE
+> 
+> proc.time()
+   user  system elapsed 
+  0.493   0.046   0.546 
