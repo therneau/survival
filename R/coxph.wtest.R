@@ -38,12 +38,18 @@ coxph.wtest <- function(var, b, toler.chol=1e-9) {
         stop("infinite argument in coxph.wtest")
         # this shouldn't happen
         }
+    # Detect redundancy independently of the units, retaining zero diagonals.
+    scale <- sqrt(pmax(unname(diag(var)), 0))
+    scale[scale == 0] <- 1
+    var <- var / outer(scale, scale)
+    b <- b / scale
     temp <- .C(Ccoxph_wtest, df=as.integer(nvar),
                               as.integer(ntest),
                               as.double(var),
                               tests= as.double(b),
                               solve= double(nvar*ntest),
 	                      as.double(toler.chol))
+    temp$solve <- temp$solve / scale
     if (ntest==1) list(test=temp$tests[1], df=temp$df, solve=temp$solve)
     else          list(test=temp$tests[1:ntest], df=temp$df, 
                        solve=matrix(temp$solve, nvar, ntest))
